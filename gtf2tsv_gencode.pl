@@ -3,32 +3,39 @@
 use strict;
 use Getopt::Long;
 
-my $gencode_file = "";
+my $gencode_file = "-";
 my $output_file = "";
 my $bed_file = "";
 my $help = 0;
 
 GetOptions(
-    "i|input:s" => \$gencode_file,
     "o|output:s" => \$output_file,
     "b|bed:s" => \$bed_file,
     "h|help" => \$help,
 );
 
 if ($help) {
-    print "Usage: $0 -i <input_file> [-b <output_bed_file>] [-o <output_file>]\n";
-    print "  -i, --input   Input gtf file from GENCODE (required)\n";
+    print "Usage: $0 [-b <output_bed_file>] [-o <output_file>|<STDOUT>] [<input_file>|<STDIN>]\n";
+    print "  <input_file>   Input GTF file from GENCODE (optional, '-' for stdin)\n";
     print "  -b, --bed  Output bed file (optional)\n";
     print "  -o, --output  Output file (optional)\n";
     print "  -h, --help    Display this help message\n";
     exit;
 }
 
-if ($gencode_file eq "") {
-    die "Please provide an input file using -i option.\n";
+$gencode_file = shift @ARGV if @ARGV;
+
+if (!$gencode_file) {
+    die "Please provide an input GTF file.\n";
 }
 
-open(IN, "<$gencode_file") or die "Can't open $gencode_file.\n";
+if ($gencode_file eq "-") {
+    # Read from standard input
+    open(IN, "<&STDIN") or die "Can't read from STDIN.\n";
+} else {
+    # Open the specified file
+    open(IN, "<$gencode_file") or die "Can't open $gencode_file.\n";
+}
 
 if ($output_file) {
     open(OUT, ">$output_file") or die "Can't open $output_file for writing.\n";
