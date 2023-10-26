@@ -1,15 +1,28 @@
 #!/usr/bin/perl
-# usage: gtf2tsv_gencode.pl -i gencode.gtf (-o output.tsv)
+
 use strict;
 use Getopt::Long;
 
 my $gencode_file = "";
 my $output_file = "";
+my $bed_file = "";
+my $help = 0;
 
 GetOptions(
-    "i:s" => \$gencode_file,
-    "o:s" => \$output_file,
+    "i|input:s" => \$gencode_file,
+    "o|output:s" => \$output_file,
+    "b|bed:s" => \$bed_file,
+    "h|help" => \$help,
 );
+
+if ($help) {
+    print "Usage: $0 -i <input_file> [-b <output_bed_file>] [-o <output_file>]\n";
+    print "  -i, --input   Input gtf file from GENCODE (required)\n";
+    print "  -b, --bed  Output bed file (optional)\n";
+    print "  -o, --output  Output file (optional)\n";
+    print "  -h, --help    Display this help message\n";
+    exit;
+}
 
 if ($gencode_file eq "") {
     die "Please provide an input file using -i option.\n";
@@ -43,7 +56,24 @@ while (<IN>) {
         $row_data{$c_type} = $c_value;
         $all_column_names{$c_type} = 1;
     }
-    # save values into column 1-8
+
+    my $id;
+    if ($type eq "gene") {
+        $id = $row_data{'gene_id'};
+    } elsif ($type eq "transcript") {
+        $id = $row_data{'transcript_id'};
+    } else {
+        $id = $row_data{'exon_id'};
+    }
+
+    if ($id eq ".") {
+        if ($type eq "transcript") {
+            $id = $row_data{'gene_id'};
+        } else {
+            $id = $row_data{'transcript_id'} || $row_data{'gene_id'};
+        }
+    }
+
     $row_data{'chr'} = $chr;
     $row_data{'source'} = $source;
     $row_data{'type'} = $type;
@@ -52,23 +82,28 @@ while (<IN>) {
     $row_data{'score'} = $score;
     $row_data{'strand'} = $strand;
     $row_data{'phase'} = $phase;
+    $row_data{'id'} = $id;
 
     push @data, \%row_data;
 }
 
 close(IN);
 
-# output column names
 my @sorted_column_names = sort keys %all_column_names;
 print OUT join("\t", 'chr', 'source', 'type', 'start', 'end', 'score', 'strand', 'phase', @sorted_column_names) . "\n";
 
-# output data
 for my $row (@data) {
     print OUT join("\t", map { $row->{$_} // '.' } ('chr', 'source', 'type', 'start', 'end', 'score', 'strand', 'phase', @sorted_column_names)) . "\n";
 }
 
 close(OUT);
 
-if ($output_file) {
-    print "Results written to $output_file\n";
+if ($bed_file) {
+    open(BED, ">$bed_file") or die "Can't open $bed_file for writing.\n";
+
+    for my $row (@data) {
+        my $id = $row->{'id'} || '.';
+        print BED join("\t", $row->{'chr'}, $row->{'start'}, $row->{'end'}, $id, $row->{'type'}, $row->{'strand'}) . "\n";
+    }
+    close(BED);
 }
