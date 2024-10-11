@@ -14,9 +14,11 @@ Usage: gtf2tsv_gencode.pl [-b <output_bed_file>] [-o <output_file>|<STDOUT>] [<i
 #### 3.1. mapping transcript location to genomic location from genePred files
 
 1. get genePred from gtf files:
+
 ```{shell}
-gtfToGenePred -genePredExt in.gtf out.genePred
+gtfToGenePred -genePredExt input.gtf output.genePred
 ```
+
 2. get localization files
 Usage: genpred2transcriptLoc.pl [--output OUTPUT] [--genePredExt] INPUT
 
