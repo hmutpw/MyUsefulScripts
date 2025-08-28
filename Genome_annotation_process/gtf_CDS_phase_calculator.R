@@ -19,7 +19,7 @@ library(data.table)
 parser <- ArgumentParser(description = "Calculate phase scores for CDS features in a GTF file.")
 
 parser$add_argument("-i", "--input", type = "character", required = TRUE, 
-                    help = "Path to the input GTF file (required)")
+                    help = "Path to the input GTF file (required, can be gziped)")
 parser$add_argument("-o", "--output", type = "character", required = TRUE,
                     help = "Path to the output GTF file (required)")
 parser$add_argument("-v", "--version", action = "version", version = "1.0.0",
@@ -67,29 +67,30 @@ calculate_cds_phase <- function(gtf_obj) {
   
   # add phase score to the original table
   dt[cds_idx, phase := cds_dt$phase]
+  out <- GenomicRanges::makeGRangesFromDataFrame(df = dt, keep.extra.columns = TRUE)
   
-  return(dt)
+  return(out)
 }
 
 # main function
 main <- function() {
-
+  
   if (!file.exists(args$input)) {
     stop(paste("Input file does not exist:", args$input))
   }
   
-
+  
   cat("[",format(Sys.time(), "%Y-%m-%d %H:%M:%S"), "] Reading GTF file...\n")
   gtf_obj <- rtracklayer::import(args$input)
   
-
+  
   cat("[", format(Sys.time(), "%Y-%m-%d %H:%M:%S"), "] Calculating CDS phases...\n")
-  result_dt <- calculate_cds_phase(gtf_obj)
+  result_gr <- calculate_cds_phase(gtf_obj)
   
   cat("[",format(Sys.time(), "%Y-%m-%d %H:%M:%S"), "] Writing output file...\n")
-  data.table::fwrite(result_dt, file = args$output, sep = "\t", quote = FALSE, col.names = FALSE)
+  rtracklayer::export(result_gr, file = args$output)
   
-
+  
   cat("[", format(Sys.time(), "%Y-%m-%d %H:%M:%S"), "] Processing complete! Output file:", args$output, "\n")
 }
 
@@ -97,4 +98,3 @@ main <- function() {
 if (!interactive()) {
   main()
 }
-
